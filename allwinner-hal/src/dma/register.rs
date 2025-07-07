@@ -27,28 +27,28 @@ pub struct RegisterBlock {
 #[repr(C)]
 pub struct ChannelRegisterBlock {
     /// DMAC Channel Enable Register.
-    pub enable: RW<u32>,
+    pub enable: ChannelEnableRegister,
     /// DMAC Channel Pause Register.
-    pub pause: RW<u32>,
+    pub pause: ChannelPauseRegister,
     /// DMAC Channel Start Address Register.
-    pub start_addr: RW<u32>,
+    pub start_addr: ChannelStartAddrRegister,
     /// DMAC Channel Configuration Register.
-    pub config: RO<u32>,
+    pub config: ChannelConfigRegister,
     /// DMAC Channel Current Source Register.
-    pub current_src_addr: RO<u32>,
+    pub current_src_addr: ChannelCurrentSrcAddrRegister,
     /// DMAC Channel Current Destination Register.
-    pub current_destination: RO<u32>,
+    pub current_destination: ChannelCurrentDestAddrRegister,
     /// DMAC Channel Byte Counter Left Register.
-    pub byte_counter_left: RO<u32>,
+    pub byte_counter_left: ChannelByteCounterLeftRegister,
     /// DMAC Channel Parameter Register.
-    pub parameter: RO<u32>,
+    pub parameter: ChannelParameterRegister,
     _reserved0: [u8; 0x8],
     /// DMAC Mode Register.
-    pub mode: RW<u32>,
+    pub mode: ChannelModeRegister,
     /// DMAC Former Descriptor Address Register.
-    pub former_desc_addr: RO<u32>,
+    pub former_desc_addr: ChannelFormerDescAddrRegister,
     /// DMAC Package Number Register.
-    pub package_num: RO<u32>,
+    pub package_num: ChannelPackageNumRegister,
     _reserved1: [u8; 0xC],
 }
 
@@ -56,22 +56,22 @@ impl ChannelEnableRegister {
     // DMA Channel Enable (Bit 0)
     pub const DMA_EN: u32 = 0x1 << 0;
 
-    /// Raw register value for DMA Channel Enable Register.
+    /// Check if DMA channel is enabled.
     #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
+    pub const fn is_dma_enabled(self) -> bool {
+        (self.0 & Self::DMA_EN) != 0
     }
 
-    /// Create from raw register value.
+    /// Enable DMA channel (set bit 0).
     #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
+    pub fn enable_dma(&mut self) {
+        self.0 |= Self::DMA_EN;
     }
 
-    /// Get the DMA channel enable bit.
+    /// Disable DMA channel (clear bit 0).
     #[inline]
-    pub const fn dma_en(self) -> u32 {
-        (self.0 & Self::DMA_EN) >> 0
+    pub fn disable_dma(&mut self) {
+        self.0 &= !Self::DMA_EN;
     }
 }
 
@@ -79,22 +79,22 @@ impl ChannelPauseRegister {
     // DMA Pause bit (Bit 0)
     pub const DMA_PAUSE: u32 = 0x1 << 0;
 
-    /// Raw register value for DMA Channel Pause Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// Check if DMA transfer is paused.
     #[inline]
-    pub const fn dma_pause(self) -> u32 {
-        (self.0 & Self::DMA_PAUSE) >> 0
+    pub const fn if_dma_pause(self) -> bool {
+        (self.0 & Self::DMA_PAUSE) != 0
+    }
+
+    /// Pause DMA transfer (set bit 0).
+    #[inline]
+    pub fn pause_dma(&mut self) {
+        self.0 |= Self::DMA_PAUSE;
+    }
+
+    /// Resume DMA transfer (clear bit 0).
+    #[inline]
+    pub fn resume_dma(&mut self) {
+        self.0 &= !Self::DMA_PAUSE;
     }
 }
 
@@ -104,18 +104,6 @@ impl ChannelStartAddrRegister {
 
     // DMA descriptor address higher 2 bits (Bits [1:0])
     pub const DMA_DESC_HIGH_ADDR: u32 = 0x3 << 0;
-
-    /// Raw register value for DMA Channel Start Address Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
 
     /// Get lower 30 bits of the DMA descriptor address.
     #[inline]
@@ -140,20 +128,20 @@ impl ChannelConfigRegister {
     // BMODE_SEL (Bit 30)
     pub const BMODE_SEL: u32 = 0x1 << 30;
 
-    // DMA_DEST_DATA_WIDTH (Bits [29:27])
-    pub const DMA_DEST_DATA_WIDTH: u32 = 0x7 << 27;
-
-    // DMA_DEST_BLOCK_SIZE (Bits [26:25])
-    pub const DMA_DEST_BLOCK_SIZE: u32 = 0x3 << 25;
+    // DMA_DEST_DATA_WIDTH (Bits [26:25])
+    pub const DMA_DEST_DATA_WIDTH: u32 = 0x3 << 25;
 
     // DMA_ADDR_MODE (Bit 24)
     pub const DMA_ADDR_MODE: u32 = 0x1 << 24;
 
-    // DMA_DEST_DRQ_TYPE (Bits [23:16])
-    pub const DMA_DEST_DRQ_TYPE: u32 = 0xFF << 16;
+    // DMA_DEST_BLOCK_SIZE (Bits [23:22])
+    pub const DMA_DEST_BLOCK_SIZE: u32 = 0x3 << 22;
 
-    // DMA_SRC_DATA_WIDTH (Bits [15:11])
-    pub const DMA_SRC_DATA_WIDTH: u32 = 0xF << 11;
+    // DMA_DEST_DRQ_TYPE (Bits [21:16])
+    pub const DMA_DEST_DRQ_TYPE: u32 = 0x3F << 16;
+
+    // DMA_SRC_DATA_WIDTH (Bits [10:9])
+    pub const DMA_SRC_DATA_WIDTH: u32 = 0x3 << 9;
 
     // DMA_SRC_ADDR_MODE (Bit 8)
     pub const DMA_SRC_ADDR_MODE: u32 = 0x1 << 8;
@@ -164,18 +152,6 @@ impl ChannelConfigRegister {
     // DMA_SRC_DRQ_TYPE (Bits [5:0])
     pub const DMA_SRC_DRQ_TYPE: u32 = 0x3F << 0;
 
-    /// Raw register value for DMA Channel Configuration Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// Get the BMODE_SEL bit.
     #[inline]
     pub const fn bmode_sel(self) -> u32 {
@@ -185,19 +161,19 @@ impl ChannelConfigRegister {
     /// Get the DMA_DEST_DATA_WIDTH bits.
     #[inline]
     pub const fn dma_dest_data_width(self) -> u32 {
-        (self.0 & Self::DMA_DEST_DATA_WIDTH) >> 27
-    }
-
-    /// Get the DMA_DEST_BLOCK_SIZE bits.
-    #[inline]
-    pub const fn dma_dest_block_size(self) -> u32 {
-        (self.0 & Self::DMA_DEST_BLOCK_SIZE) >> 25
+        (self.0 & Self::DMA_DEST_DATA_WIDTH) >> 25
     }
 
     /// Get the DMA_ADDR_MODE bit.
     #[inline]
     pub const fn dma_addr_mode(self) -> u32 {
         (self.0 & Self::DMA_ADDR_MODE) >> 24
+    }
+
+    /// Get the DMA_DEST_BLOCK_SIZE bits.
+    #[inline]
+    pub const fn dma_dest_block_size(self) -> u32 {
+        (self.0 & Self::DMA_DEST_BLOCK_SIZE) >> 22
     }
 
     /// Get the DMA_DEST_DRQ_TYPE bits.
@@ -209,7 +185,7 @@ impl ChannelConfigRegister {
     /// Get the DMA_SRC_DATA_WIDTH bits.
     #[inline]
     pub const fn dma_src_data_width(self) -> u32 {
-        (self.0 & Self::DMA_SRC_DATA_WIDTH) >> 11
+        (self.0 & Self::DMA_SRC_DATA_WIDTH) >> 9
     }
 
     /// Get the DMA_SRC_ADDR_MODE bit.
@@ -235,18 +211,6 @@ impl ChannelCurrentSrcAddrRegister {
     // DMA Current Source Address (Bits [31:0])
     pub const DMA_CUR_SRC: u32 = 0xFFFFFFFF;
 
-    /// Raw register value for DMA Channel Current Source Address Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// Get the DMA current source address.
     #[inline]
     pub const fn dma_cur_src(self) -> u32 {
@@ -257,18 +221,6 @@ impl ChannelCurrentSrcAddrRegister {
 impl ChannelCurrentDestAddrRegister {
     // DMA Current Destination Address (Bits [31:0])
     pub const DMA_CUR_DEST: u32 = 0xFFFFFFFF;
-
-    /// Raw register value for DMA Channel Current Destination Address Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
 
     /// Get the DMA current destination address.
     #[inline]
@@ -281,18 +233,6 @@ impl ChannelByteCounterLeftRegister {
     // DMA Byte Counter Left (Bits [24:0])
     pub const DMA_BCNT_LEFT: u32 = 0xFFFFFF;
 
-    /// Raw register value for DMA Channel Byte Counter Left Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// Get the DMA byte counter left value.
     #[inline]
     pub const fn dma_bcnt_left(self) -> u32 {
@@ -303,18 +243,6 @@ impl ChannelByteCounterLeftRegister {
 impl ChannelParameterRegister {
     // WAIT_CYC (Bits [7:0])
     pub const WAIT_CYC: u32 = 0xFF << 0;
-
-    /// Raw register value for DMA Channel Parameter Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
 
     /// Get the WAIT_CYC value.
     #[inline]
@@ -330,18 +258,6 @@ impl ChannelModeRegister {
     // DMA_SRC_MODE (Bit 2)
     pub const DMA_SRC_MODE: u32 = 0x1 << 2;
 
-    /// Raw register value for DMA Channel Mode Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// Get the DMA destination communication mode.
     #[inline]
     pub const fn dma_dst_mode(self) -> u32 {
@@ -353,23 +269,21 @@ impl ChannelModeRegister {
     pub const fn dma_src_mode(self) -> u32 {
         (self.0 & Self::DMA_SRC_MODE) >> 2
     }
+
+    /// Set the DMA destination communication mode.
+    #[inline]
+    pub fn set_dma_dst_mode(&mut self, enable: bool) {
+        if enable {
+            self.0 |= Self::DMA_DST_MODE;
+        } else {
+            self.0 &= !Self::DMA_DST_MODE;
+        }
+    }
 }
 
 impl ChannelFormerDescAddrRegister {
     // DMA Former Descriptor Address (Bits [31:0])
     pub const DMA_FDESC_ADDR: u32 = 0xFFFFFFFF;
-
-    /// Raw register value for DMA Channel Former Descriptor Address Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
 
     /// Get the DMA former descriptor address.
     #[inline]
@@ -381,18 +295,6 @@ impl ChannelFormerDescAddrRegister {
 impl ChannelPackageNumRegister {
     // DMA Package Number (Bits [31:0])
     pub const DMA_PKG_NUM: u32 = 0xFFFFFFFF;
-
-    /// Raw register value for DMA Channel Package Number Register.
-    #[inline]
-    pub const fn raw(self) -> u32 {
-        self.0
-    }
-
-    /// Create from raw register value.
-    #[inline]
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
 
     /// Get the DMA package number.
     #[inline]
